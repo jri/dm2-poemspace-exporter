@@ -1,0 +1,29 @@
+<web-app>
+
+	<display-name>Poemspace Exporter</display-name>
+
+    <context-param>
+      <param-name>home</param-name>
+      <param-value>/var/lib/tomcat-6/webapps/ROOT</param-value>
+    </context-param>
+
+	<context-param>
+		<param-name>service</param-name>
+		<param-value>eproperties</param-value>
+	</context-param>
+
+	<servlet>
+		<servlet-name>Export Servlet</servlet-name>
+		<servlet-class>de.deepamehta.poemspace.exporter.PoemspaceExporterServlet</servlet-class>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>Export Servlet</servlet-name>
+		<url-pattern>/export</url-pattern>
+	</servlet-mapping>
+
+	<session-config>
+		<session-timeout>300</session-timeout>
+	</session-config>
+
+</web-app>

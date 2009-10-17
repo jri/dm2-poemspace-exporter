@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<project name="poemspace-exporter" basedir="." default="war">
+    
+    <property name="java.src.dir" value="src"/>
+    <property name="jsp.pages.dir" value="jsp"/>
+        
+    <property name="lib.dir" value="lib/"/>
+    <property name="dist.dir" value="dist/"/>
+    <property name="dist.file" value="${dist.dir}/${ant.project.name}.war"/>
+
+    <property name="build.dir" value="build"/>
+    <property name="build.classes.dir" value="build/classes"/>
+
+    <target name="compile" depends="init">
+        <javac srcdir="${java.src.dir}" destdir="${build.classes.dir}" classpathref="build.classpath"
+            encoding="UTF-8" target="1.4" debug="on"
+        />
+    </target>
+
+    <target name="war" depends="compile">
+        <war warfile="${dist.file}" webxml="web.xml">
+            <classes dir="${build.classes.dir}"/>
+            <lib dir="${lib.dir}"/>
+            <fileset dir="${jsp.pages.dir}"/>
+        </war>
+    </target>
+
+    <!-- Cleanup the build paths...
+        Remove all old compiled classes and auto-generated files
+    -->
+    <target name="clean" description="Clean the build directory for a fresh start">
+        <delete dir="build"/>
+        <antcall target="init"/>
+    </target>
+    
+    <!-- build paths -->
+    <path id="build.classpath">
+        <fileset dir="${lib.dir}" includes="**/*jar"/>
+        <dirset dir="${build.dir}"/>
+    </path>
+
+    <!-- Making directories required for building... -->
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+    </target>
+
+</project>
