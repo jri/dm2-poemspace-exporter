@@ -52,16 +52,16 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         //
 	    List persons = cm.getTopics(TOPICTYPE_PERSON);
         logger.info("#################### exporting " + persons.size() + " persons ####################");
-	    for (int i = 0; i < 10 /* persons.size() */; i++) {
+	    for (int i = 0; i < persons.size(); i++) {
 	        BaseTopic person = (BaseTopic) persons.get(i);
 	        exportContact(person, i + 1, true);
         }
         //
 	    List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
         logger.info("#################### exporting " + institutions.size() + " institutions ####################");
-	    for (int i = 0; i < 10 /* institutions.size() */; i++) {
+	    for (int i = 0; i < institutions.size(); i++) {
 	        BaseTopic institution = (BaseTopic) institutions.get(i);
-	        exportContact(institution, i + 1, i < 10 /* institutions.size() */ - 1);
+	        exportContact(institution, i + 1, i < institutions.size() - 1);
         }
         //
         logger.info("#################### export complete ####################");
@@ -82,14 +82,14 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         logger.info("# " + nr + " \"" + topic.getName() + "\"");
         //
         json.append("{\n" +
-            "\"id\": \"" + topic.getID() + "\",\n" +
-            "\"type\": \"Topic\",\n" +
-            "\"topic_type\": \"" + targetTypeName + "\",\n" +
-            "\"fields\": [\n");
+            "    \"_id\": \"" + topic.getID() + "\",\n" +
+            "    \"type\": \"Topic\",\n" +
+            "    \"topic_type\": \"" + targetTypeName + "\",\n" +
+            "    \"fields\": [\n");
         exportField("Name", topic.getName(), true);
         exportMultiField("Description", as.getTopicProperty(topic, "Description"), 30, false);
-        json.append("],\n" +
-            "\"implementation\": \"PlainDocument\"\n" +
+        json.append("    ],\n" +
+            "    \"implementation\": \"PlainDocument\"\n" +
         "},\n");
     }
 
@@ -103,6 +103,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         HashSet kieze = new HashSet();
         HashSet sitecats = new HashSet();
         HashSet artcats = new HashSet();
+        String instID = null;       // to track person->institution link
         //
         // follow associations
         List relTopics = cm.getRelatedTopics(contact.getID());
@@ -137,6 +138,10 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
                 sitecats.add(relTopic.getID());
             } else if (relTopic.getType().equals(TOPICTYPE_ARTCAT)) {
                 artcats.add(relTopic.getID());
+            } else if (relTopic.getType().equals(TOPICTYPE_INSTITUTION)) {
+                if (contact.getType().equals(TOPICTYPE_PERSON)) {
+                    instID = relTopic.getID();
+                }
             }
         }
         //
@@ -144,29 +149,33 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             email_count + " email addresses" + (email_empty_count > 0 ? " (## " + email_empty_count + " empty)" : "") + ", " +
             website_count + " websites" + (website_empty_count > 0 ? " (## " + website_empty_count + " empty)" : "") + ", " +
             projects.size() + " projects, " + bezirke.size() + " bezirke, " + kieze.size() + " kieze, " + 
-            sitecats.size() + " site cats, " + artcats.size() + " art cats"
+            sitecats.size() + " site cats, " + artcats.size() + " art cats" + (instID != null ? ", has institution link" : "")
         );
         //
-        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats, addComma);
+        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats, instID, addComma);
     }
 
-    private void exportContact(BaseTopic contact, String email, String website,
-                                        Set projects, Set bezirke, Set kieze, Set sitecats, Set artcats, boolean addComma) {
+    private void exportContact(BaseTopic contact, String email, String website, Set projects, Set bezirke, Set kieze,
+                                                                  Set sitecats, Set artcats, String instID, boolean addComma) {
         String contactID = contact.getID();
         json.append("{\n" +
-            "\"id\": \"" + contactID + "\",\n" +
-            "\"type\": \"Topic\",\n" +
-            "\"topic_type\": \"Contact\",\n" +
-            "\"fields\": [\n");
+            "    \"_id\": \"" + contactID + "\",\n" +
+            "    \"type\": \"Topic\",\n" +
+            "    \"topic_type\": \"Contact\",\n" +
+            "    \"fields\": [\n");
         exportField("Name", as.getTopicProperty(contact, "Name"), true);
         exportMultiField("Notes", as.getTopicProperty(contact, "Description"), 4, true);
         exportMultiField("Address", as.getTopicProperty(contact, "Adresse"), 4, true);
         exportMultiField("Phone", as.getTopicProperty(contact, "Telefon"), 2, true);
         exportMultiField("Email", email, 2, true);
         exportMultiField("Website", website, 2, true);
+        exportRelationField("Bezirk", "Bezirk", true);
+        exportRelationField("Kiez", "Kiez", true);
+        exportRelationField("Einrichtungsart", "Einrichtungsart", true);
+        exportRelationField("Kunstgattung", "Kunstgattung", true);
         exportRelationField("Workspaces", "Workspace", false);
-        json.append("],\n" +
-            "\"implementation\": \"PlainDocument\"\n" +
+        json.append("    ],\n" +
+            "    \"implementation\": \"PlainDocument\"\n" +
         "}");
         // contact assignments
         exportAssociations(contactID, projects);
@@ -174,6 +183,11 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         exportAssociations(contactID, kieze);
         exportAssociations(contactID, sitecats);
         exportAssociations(contactID, artcats);
+        // person->institution link
+        if (instID != null) {
+            json.append(",\n");
+            exportAssociation(contactID, instID, false);
+        }
         //
         json.append(addComma ? "," : "");
         json.append("\n");
@@ -182,7 +196,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     /*** Helper ***/
 
     private void exportField(String id, String content, boolean addComma) {
-        json.append("{" +
+        json.append("        {" +
             "\"id\": \"" + id + "\", " +
             "\"model\": {\"type\": \"text\"}, " +
             "\"view\": {\"editor\": \"single line\"}, " +
@@ -193,7 +207,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     }
 
     private void exportMultiField(String id, String content, int lines, boolean addComma) {
-        json.append("{" +
+        json.append("        {" +
             "\"id\": \"" + id + "\", " +
             "\"model\": {\"type\": \"text\"}, " +
             "\"view\": {\"editor\": \"multi line\", \"lines\": " + lines + "}, " +
@@ -203,23 +217,26 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         json.append("\n");
     }
 
-    private void exportRelationField(String id, String relation_type, boolean addComma) {
-        json.append("{" +
+    private void exportRelationField(String id, String related_type, boolean addComma) {
+        json.append("        {" +
             "\"id\": \"" + id + "\", " +
-            "\"model\": {\"type\": \"relation\", \"relation_type\": \"" + relation_type + "\"}, " +
+            "\"model\": {\"type\": \"relation\", \"related_type\": \"" + related_type + "\"}, " +
             "\"view\": {\"editor\": \"checkboxes\"}" +
         "}");
         json.append(addComma ? "," : "");
         json.append("\n");
     }
 
+    //
+
     private void exportAssociations(String topicID, Set relTopicIDs) {
         Iterator i = relTopicIDs.iterator();
-        json.append(i.hasNext() ? "," : "");
-        json.append("\n");
-        while (i.hasNext()) {
-            String relTopicID = (String) i.next();
-            exportAssociation(topicID, relTopicID, i.hasNext());
+        if (i.hasNext()) {
+            json.append(",\n");
+            while (i.hasNext()) {
+                String relTopicID = (String) i.next();
+                exportAssociation(topicID, relTopicID, i.hasNext());
+            }
         }
     }
 
@@ -229,14 +246,13 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             "\"rel_type\": \"Relation\", " +
             "\"rel_doc_ids\": [\"" + topicID1 + "\", \"" + topicID2 + "\"]" +
             "}");
-        json.append(addComma ? "," : "");
-        json.append("\n");
+        json.append(addComma ? ",\n" : "");
     }
 
     //
 
     private String toJSON(String text) {
-        // convert HTML tags
+        // strip HTML tags
         text = text.replaceAll("<html>", "");
         text = text.replaceAll("</html>", "");
         text = text.replaceAll("<head>", "");
