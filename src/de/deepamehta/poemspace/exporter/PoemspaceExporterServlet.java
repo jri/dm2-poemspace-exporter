@@ -35,17 +35,17 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private static final String TOPICTYPE_ARTCAT = "t-1140";
 
     private static PrintWriter out;
-	private static Logger logger = Logger.getLogger("de.deepamehta.poemspace.exporter");
+    private static Logger logger = Logger.getLogger("de.deepamehta.poemspace.exporter");
 
     protected String performAction(String action, RequestParameter params, Session session, CorporateDirectives directives)
-																									throws ServletException {
-		if (action == null) {
-		    exportToJSON();
-		    return PAGE_EXPORT_RESULT;
-		} else {
-			return super.performAction(action, params, session, directives);
-		}
-	}
+                                                                                                    throws ServletException {
+        if (action == null) {
+            exportToJSON();
+            return PAGE_EXPORT_RESULT;
+        } else {
+            return super.performAction(action, params, session, directives);
+        }
+    }
 
     // -----------
 
@@ -62,18 +62,18 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             exportTopics(TOPICTYPE_SITECAT, "site categories", "Einrichtungsart");
             exportTopics(TOPICTYPE_ARTCAT, "art categories", "Kunstgattung");
             //
-    	    List persons = cm.getTopics(TOPICTYPE_PERSON);
+            List persons = cm.getTopics(TOPICTYPE_PERSON);
             logger.info("#################### exporting " + persons.size() + " persons ####################");
-    	    for (int i = 0; i < 10 /*persons.size()*/; i++) {
-    	        BaseTopic person = (BaseTopic) persons.get(i);
-    	        exportContact(person, i + 1, true);
+            for (int i = 0; i < 10 /*persons.size()*/; i++) {
+                BaseTopic person = (BaseTopic) persons.get(i);
+                exportContact(person, i + 1, true);
             }
             //
-    	    List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
+            List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
             logger.info("#################### exporting " + institutions.size() + " institutions ####################");
-    	    for (int i = 0; i < 10 /*institutions.size()*/; i++) {
-    	        BaseTopic institution = (BaseTopic) institutions.get(i);
-    	        exportContact(institution, i + 1, i < 10 /*institutions.size()*/ - 1);
+            for (int i = 0; i < 10 /*institutions.size()*/; i++) {
+                BaseTopic institution = (BaseTopic) institutions.get(i);
+                exportContact(institution, i + 1, i < 10 /*institutions.size()*/ - 1);
             }
             //
             logger.info("#################### export complete ####################");
@@ -85,11 +85,11 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     }
 
     private void exportTopics(String topicTypeID, String pluralName, String targetTypeName) {
-	    List topics = cm.getTopics(topicTypeID);
+        List topics = cm.getTopics(topicTypeID);
         logger.info("#################### exporting " + topics.size() + " " + pluralName + " ####################");
-	    for (int i = 0; i < topics.size(); i++) {
-	        BaseTopic topic = (BaseTopic) topics.get(i);
-	        exportTopic(topic, targetTypeName, i + 1);
+        for (int i = 0; i < topics.size(); i++) {
+            BaseTopic topic = (BaseTopic) topics.get(i);
+            exportTopic(topic, targetTypeName, i + 1);
         }
     }
 
@@ -122,9 +122,9 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         //
         // follow associations
         List relTopics = cm.getRelatedTopics(contact.getID());
-	    Iterator i = relTopics.iterator();
-	    while (i.hasNext()) {
-	        BaseTopic relTopic = (BaseTopic) i.next();
+        Iterator i = relTopics.iterator();
+        while (i.hasNext()) {
+            BaseTopic relTopic = (BaseTopic) i.next();
             if (relTopic.getType().equals(TOPICTYPE_EMAIL_ADDRESS)) {
                 email_count++;
                 String ea = as.getTopicProperty(relTopic, PROPERTY_EMAIL_ADDRESS);
@@ -297,8 +297,6 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         Matcher m = p.matcher(text);
         while (m.find()) {
             int c = Integer.parseInt(m.group(1));
-            // System.out.println("*" + m.group(1) + "* " + Integer.toHexString(c));
-            // m.appendReplacement(buffer, "\\\\u" + Integer.toHexString(c));
             m.appendReplacement(buffer, Character.toString((char) c));
         }
         m.appendTail(buffer);

@@ -5,7 +5,7 @@ DeepaMehta 2 Poemspace Exporter
 This web application demonstrates how to export content from a DeepaMehta 2 installation
 in order to import it to DeepaMehta 3.
 
-**Note**  
+**Please Note**:  
 This is not a universal DeepaMehta 2 exporter.  
 DeepaMehta 2 Poemspace Exporter is tailored for a specific custom data model.  
 Without modification this will not run with your DeepaMehta 2 installation.
