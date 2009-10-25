@@ -8,11 +8,19 @@ import de.deepamehta.service.web.RequestParameter;
 
 import javax.servlet.ServletException;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 
@@ -26,13 +34,13 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private static final String TOPICTYPE_SITECAT = "t-1134";
     private static final String TOPICTYPE_ARTCAT = "t-1140";
 
-    private static StringBuffer json;
+    private static PrintWriter out;
 	private static Logger logger = Logger.getLogger("de.deepamehta.poemspace.exporter");
 
     protected String performAction(String action, RequestParameter params, Session session, CorporateDirectives directives)
 																									throws ServletException {
 		if (action == null) {
-		    session.setAttribute("json", exportToJSON());
+		    exportToJSON();
 		    return PAGE_EXPORT_RESULT;
 		} else {
 			return super.performAction(action, params, session, directives);
@@ -41,32 +49,39 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
 
     // -----------
 
-    private String exportToJSON() {
-        json = new StringBuffer("[\n");
-        //
-        exportTopics(TOPICTYPE_PROJECT, "projects", "Workspace");
-        exportTopics(TOPICTYPE_BEZIRK, "Bezirke", "Bezirk");
-        exportTopics(TOPICTYPE_KIEZ, "Kieze", "Kiez");
-        exportTopics(TOPICTYPE_SITECAT, "site categories", "Einrichtungsart");
-        exportTopics(TOPICTYPE_ARTCAT, "art categories", "Kunstgattung");
-        //
-	    List persons = cm.getTopics(TOPICTYPE_PERSON);
-        logger.info("#################### exporting " + persons.size() + " persons ####################");
-	    for (int i = 0; i < persons.size(); i++) {
-	        BaseTopic person = (BaseTopic) persons.get(i);
-	        exportContact(person, i + 1, true);
+    private void exportToJSON() {
+        try {
+            File file = new File("dm2-export.json");
+            logger.info("Exporting to file " + file.getAbsolutePath());
+            out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8")));
+            out.println("[");
+            //
+            exportTopics(TOPICTYPE_PROJECT, "projects", "Workspace");
+            exportTopics(TOPICTYPE_BEZIRK, "Bezirke", "Bezirk");
+            exportTopics(TOPICTYPE_KIEZ, "Kieze", "Kiez");
+            exportTopics(TOPICTYPE_SITECAT, "site categories", "Einrichtungsart");
+            exportTopics(TOPICTYPE_ARTCAT, "art categories", "Kunstgattung");
+            //
+    	    List persons = cm.getTopics(TOPICTYPE_PERSON);
+            logger.info("#################### exporting " + persons.size() + " persons ####################");
+    	    for (int i = 0; i < 10 /*persons.size()*/; i++) {
+    	        BaseTopic person = (BaseTopic) persons.get(i);
+    	        exportContact(person, i + 1, true);
+            }
+            //
+    	    List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
+            logger.info("#################### exporting " + institutions.size() + " institutions ####################");
+    	    for (int i = 0; i < 10 /*institutions.size()*/; i++) {
+    	        BaseTopic institution = (BaseTopic) institutions.get(i);
+    	        exportContact(institution, i + 1, i < 10 /*institutions.size()*/ - 1);
+            }
+            //
+            logger.info("#################### export complete ####################");
+            out.println("]");
+            out.close();
+        } catch (Throwable e) {
+            logger.severe("### Error while opening file: " + e);
         }
-        //
-	    List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
-        logger.info("#################### exporting " + institutions.size() + " institutions ####################");
-	    for (int i = 0; i < institutions.size(); i++) {
-	        BaseTopic institution = (BaseTopic) institutions.get(i);
-	        exportContact(institution, i + 1, i < institutions.size() - 1);
-        }
-        //
-        logger.info("#################### export complete ####################");
-        json.append("]\n");
-        return json.toString();
     }
 
     private void exportTopics(String topicTypeID, String pluralName, String targetTypeName) {
@@ -81,16 +96,16 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private void exportTopic(BaseTopic topic, String targetTypeName, int nr) {
         logger.info("# " + nr + " \"" + topic.getName() + "\"");
         //
-        json.append("{\n" +
+        out.println("{\n" +
             "    \"_id\": \"" + topic.getID() + "\",\n" +
             "    \"type\": \"Topic\",\n" +
             "    \"topic_type\": \"" + targetTypeName + "\",\n" +
-            "    \"fields\": [\n");
+            "    \"fields\": [");
         exportField("Name", topic.getName(), true);
         exportMultiField("Description", as.getTopicProperty(topic, "Description"), 30, false);
-        json.append("    ],\n" +
+        out.println("    ],\n" +
             "    \"implementation\": \"PlainDocument\"\n" +
-        "},\n");
+        "},");
     }
 
     private void exportContact(BaseTopic contact, int nr, boolean addComma) {
@@ -158,11 +173,11 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private void exportContact(BaseTopic contact, String email, String website, Set projects, Set bezirke, Set kieze,
                                                                   Set sitecats, Set artcats, String instID, boolean addComma) {
         String contactID = contact.getID();
-        json.append("{\n" +
+        out.println("{\n" +
             "    \"_id\": \"" + contactID + "\",\n" +
             "    \"type\": \"Topic\",\n" +
             "    \"topic_type\": \"Contact\",\n" +
-            "    \"fields\": [\n");
+            "    \"fields\": [");
         exportField("Name", as.getTopicProperty(contact, "Name"), true);
         exportMultiField("Notes", as.getTopicProperty(contact, "Description"), 4, true);
         exportMultiField("Address", as.getTopicProperty(contact, "Adresse"), 4, true);
@@ -174,7 +189,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         exportRelationField("Einrichtungsart", "Einrichtungsart", true);
         exportRelationField("Kunstgattung", "Kunstgattung", true);
         exportRelationField("Workspaces", "Workspace", false);
-        json.append("    ],\n" +
+        out.print("    ],\n" +
             "    \"implementation\": \"PlainDocument\"\n" +
         "}");
         // contact assignments
@@ -185,46 +200,46 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         exportAssociations(contactID, artcats);
         // person->institution link
         if (instID != null) {
-            json.append(",\n");
+            out.println(",");
             exportAssociation(contactID, instID, false);
         }
         //
-        json.append(addComma ? "," : "");
-        json.append("\n");
+        out.print(addComma ? "," : "");
+        out.println();
     }
 
     /*** Helper ***/
 
     private void exportField(String id, String content, boolean addComma) {
-        json.append("        {" +
+        out.print("        {" +
             "\"id\": \"" + id + "\", " +
             "\"model\": {\"type\": \"text\"}, " +
             "\"view\": {\"editor\": \"single line\"}, " +
             "\"content\": \"" + content + "\"" +
         "}");
-        json.append(addComma ? "," : "");
-        json.append("\n");
+        out.print(addComma ? "," : "");
+        out.println();
     }
 
     private void exportMultiField(String id, String content, int lines, boolean addComma) {
-        json.append("        {" +
+        out.print("        {" +
             "\"id\": \"" + id + "\", " +
             "\"model\": {\"type\": \"text\"}, " +
             "\"view\": {\"editor\": \"multi line\", \"lines\": " + lines + "}, " +
             "\"content\": \"" + toJSON(content) + "\"" +
         "}");
-        json.append(addComma ? "," : "");
-        json.append("\n");
+        out.print(addComma ? "," : "");
+        out.println();
     }
 
     private void exportRelationField(String id, String related_type, boolean addComma) {
-        json.append("        {" +
+        out.print("        {" +
             "\"id\": \"" + id + "\", " +
             "\"model\": {\"type\": \"relation\", \"related_type\": \"" + related_type + "\"}, " +
             "\"view\": {\"editor\": \"checkboxes\"}" +
         "}");
-        json.append(addComma ? "," : "");
-        json.append("\n");
+        out.print(addComma ? "," : "");
+        out.println();
     }
 
     //
@@ -232,7 +247,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private void exportAssociations(String topicID, Set relTopicIDs) {
         Iterator i = relTopicIDs.iterator();
         if (i.hasNext()) {
-            json.append(",\n");
+            out.println(",");
             while (i.hasNext()) {
                 String relTopicID = (String) i.next();
                 exportAssociation(topicID, relTopicID, i.hasNext());
@@ -241,12 +256,14 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     }
 
     private void exportAssociation(String topicID1, String topicID2, boolean addComma) {
-        json.append("{" +
+        out.print("{" +
             "\"type\": \"Relation\", " +
             "\"rel_type\": \"Relation\", " +
             "\"rel_doc_ids\": [\"" + topicID1 + "\", \"" + topicID2 + "\"]" +
             "}");
-        json.append(addComma ? ",\n" : "");
+        if (addComma) {
+            out.println(",");
+        }
     }
 
     //
@@ -262,15 +279,8 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         text = text.replaceAll("<p>", "");
         text = text.replaceAll("<p style=\"margin-top: 0\">", "");
         text = text.replaceAll("</p>", "");
-        // convert HTML entities                    // IMPORTANT: must compile with encoding UTF-8
-        text = text.replaceAll("&#228;", "ä");
-        text = text.replaceAll("&#246;", "ö");
-        text = text.replaceAll("&#252;", "ü");
-        text = text.replaceAll("&#196;", "Ä");      // C4
-        text = text.replaceAll("&#214;", "Ö");      // D6
-        text = text.replaceAll("&#220;", "Ü");      // DC
-        text = text.replaceAll("&#223;", "ß");      // DF
-        text = text.replaceAll("&#8211;", "--");    // 2013     option-minus    emulated by double minus
+        // convert HTML entities
+        text = toUnicode(text);
         //
         text = text.trim();
         // JSON conformity
@@ -278,10 +288,20 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         text = text.replaceAll("\n", "\\\\n");
         text = text.replaceAll("\"", "\\\\\"");
         //
-        if (text.indexOf("&#") >= 0) {
-            logger.warning("### HTML entity not converted (\"" + text + "\")");
-        }
-        //
         return text;
+    }
+
+    private String toUnicode(String text) {
+        StringBuffer buffer = new StringBuffer();
+        Pattern p = Pattern.compile("&#(\\d+);");
+        Matcher m = p.matcher(text);
+        while (m.find()) {
+            int c = Integer.parseInt(m.group(1));
+            // System.out.println("*" + m.group(1) + "* " + Integer.toHexString(c));
+            // m.appendReplacement(buffer, "\\\\u" + Integer.toHexString(c));
+            m.appendReplacement(buffer, Character.toString((char) c));
+        }
+        m.appendTail(buffer);
+        return buffer.toString();
     }
 }

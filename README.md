@@ -5,9 +5,9 @@ DeepaMehta 2 Poemspace Exporter
 This web application demonstrates how to export content from a DeepaMehta 2 installation
 in order to import it to DeepaMehta 3.
 
-*Note*  
-This is not a universal DeepaMehta 2 exporter.
-DeepaMehta 2 Poemspace Exporter is tailored for a specific custom data model.
+**Note**  
+This is not a universal DeepaMehta 2 exporter.  
+DeepaMehta 2 Poemspace Exporter is tailored for a specific custom data model.  
 Without modification this will not run with your DeepaMehta 2 installation.
 
 However, if you plan to transfer DeepaMehta 2 content to DeepaMehta 3
@@ -23,7 +23,7 @@ Requirements
 * Tomcat (or another Servlet engine)  
   <http://tomcat.apache.org/>
 
-* Ant
+* Ant  
   <http://ant.apache.org/>
 
 
@@ -50,23 +50,24 @@ Installation
 Usage
 -----
 
-1.  Start the export process by pointing your webbrowser to:
+1.  Start the export process by pointing your webbrowser to
+    (replace `localhost:8080` with your Tomcat host and port):
         http://localhost:8080/poemspace-exporter/export
-    (replace `localhost:8080` with your Tomcat host and port.)
+    No further interaction is required. The export process might take a while.
 
-    No further interaction is required. The export process might take a while
-    (that's why the session timeout is increased to 5 hours in `web.xml`).
-    When its done, the webbrowser shows a page with the exported data in JSON format.
-
-2.  In order to see possible special characters properly on the page,
-    you must set the browser display to UTF-8 encoding.
+2.  Track the export process by reading the Tomcat log, e.g.:
+        cd /var/log/tomcat-6
+        tail -f catalina.2009-10-18.log
+    Once the export is complete a respective message appears in the log:  
+    `#################### export complete ####################`
     
-3.  Save the page to a text file.
+3.  The result of the export is a file `dm2-export.json` which is created in
+    Tomcat's temporary directory, e.g. `/var/tmp/tomcat-6`
 
-4.  You can import that file to DeepaMehta 3 by means of the "DM3 Import" plugin.
+4.  You can import that file to DeepaMehta 3 by means of the "DM3 Import" plugin.  
     <http://github.com/jri/dm3-import>
 
 
 ------------
 Jörg Richter  
-Oct 18, 2009
+Oct 25, 2009
