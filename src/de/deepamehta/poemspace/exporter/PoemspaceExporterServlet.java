@@ -64,16 +64,16 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             //
             List persons = cm.getTopics(TOPICTYPE_PERSON);
             logger.info("#################### exporting " + persons.size() + " persons ####################");
-            for (int i = 0; i < 10 /*persons.size()*/; i++) {
+            for (int i = 0; i < persons.size(); i++) {
                 BaseTopic person = (BaseTopic) persons.get(i);
                 exportContact(person, i + 1, true);
             }
             //
             List institutions = cm.getTopics(TOPICTYPE_INSTITUTION);
             logger.info("#################### exporting " + institutions.size() + " institutions ####################");
-            for (int i = 0; i < 10 /*institutions.size()*/; i++) {
+            for (int i = 0; i < institutions.size(); i++) {
                 BaseTopic institution = (BaseTopic) institutions.get(i);
-                exportContact(institution, i + 1, i < 10 /*institutions.size()*/ - 1);
+                exportContact(institution, i + 1, i < institutions.size() - 1);
             }
             //
             logger.info("#################### export complete ####################");
@@ -118,7 +118,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         HashSet kieze = new HashSet();
         HashSet sitecats = new HashSet();
         HashSet artcats = new HashSet();
-        String instID = null;       // to track person->institution link
+        HashSet institutions = new HashSet();
         //
         // follow associations
         List relTopics = cm.getRelatedTopics(contact.getID());
@@ -154,9 +154,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             } else if (relTopic.getType().equals(TOPICTYPE_ARTCAT)) {
                 artcats.add(relTopic.getID());
             } else if (relTopic.getType().equals(TOPICTYPE_INSTITUTION)) {
-                if (contact.getType().equals(TOPICTYPE_PERSON)) {
-                    instID = relTopic.getID();
-                }
+                institutions.add(relTopic.getID());
             }
         }
         //
@@ -164,14 +162,14 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             email_count + " email addresses" + (email_empty_count > 0 ? " (## " + email_empty_count + " empty)" : "") + ", " +
             website_count + " websites" + (website_empty_count > 0 ? " (## " + website_empty_count + " empty)" : "") + ", " +
             projects.size() + " projects, " + bezirke.size() + " bezirke, " + kieze.size() + " kieze, " + 
-            sitecats.size() + " site cats, " + artcats.size() + " art cats" + (instID != null ? ", has institution link" : "")
+            sitecats.size() + " site cats, " + artcats.size() + " art cats, " + institutions.size() + " institutions"
         );
         //
-        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats, instID, addComma);
+        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats, institutions, addComma);
     }
 
     private void exportContact(BaseTopic contact, String email, String website, Set projects, Set bezirke, Set kieze,
-                                                                  Set sitecats, Set artcats, String instID, boolean addComma) {
+                                                                  Set sitecats, Set artcats, Set institutions, boolean addComma) {
         String contactID = contact.getID();
         out.println("{\n" +
             "    \"_id\": \"" + contactID + "\",\n" +
@@ -198,11 +196,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         exportAssociations(contactID, kieze);
         exportAssociations(contactID, sitecats);
         exportAssociations(contactID, artcats);
-        // person->institution link
-        if (instID != null) {
-            out.println(",");
-            exportAssociation(contactID, instID, false);
-        }
+        exportAssociations(contactID, institutions);
         //
         out.print(addComma ? "," : "");
         out.println();
