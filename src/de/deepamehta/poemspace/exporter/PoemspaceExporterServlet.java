@@ -119,6 +119,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         HashSet sitecats = new HashSet();
         HashSet artcats = new HashSet();
         HashSet institutions = new HashSet();
+        HashSet persons = new HashSet();
         //
         // follow associations
         List relTopics = cm.getRelatedTopics(contact.getID());
@@ -154,7 +155,20 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             } else if (relTopic.getType().equals(TOPICTYPE_ARTCAT)) {
                 artcats.add(relTopic.getID());
             } else if (relTopic.getType().equals(TOPICTYPE_INSTITUTION)) {
-                institutions.add(relTopic.getID());
+                if (contact.getType().equals(TOPICTYPE_INSTITUTION)) {
+                    if (contact.getID().compareTo(relTopic.getID()) > 0) {
+                        institutions.add(relTopic.getID());     // Institution -> Institution
+                    }
+                } else {
+                    institutions.add(relTopic.getID());         // Person -> Institution
+                }
+            } else if (relTopic.getType().equals(TOPICTYPE_PERSON)) {
+                if (contact.getType().equals(TOPICTYPE_PERSON)) {
+                    if (contact.getID().compareTo(relTopic.getID()) > 0) {
+                        persons.add(relTopic.getID());          // Person -> Person
+                    }
+                }
+                // Note: Institution -> Person is already being exported
             }
         }
         //
@@ -162,14 +176,16 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
             email_count + " email addresses" + (email_empty_count > 0 ? " (## " + email_empty_count + " empty)" : "") + ", " +
             website_count + " websites" + (website_empty_count > 0 ? " (## " + website_empty_count + " empty)" : "") + ", " +
             projects.size() + " projects, " + bezirke.size() + " bezirke, " + kieze.size() + " kieze, " + 
-            sitecats.size() + " site cats, " + artcats.size() + " art cats, " + institutions.size() + " institutions"
+            sitecats.size() + " site cats, " + artcats.size() + " art cats, " +
+            institutions.size() + " institutions, " + persons.size() + " persons"
         );
         //
-        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats, institutions, addComma);
+        exportContact(contact, email.toString(), website.toString(), projects, bezirke, kieze, sitecats, artcats,
+                institutions, persons, addComma);
     }
 
     private void exportContact(BaseTopic contact, String email, String website, Set projects, Set bezirke, Set kieze,
-                                                                  Set sitecats, Set artcats, Set institutions, boolean addComma) {
+                                                  Set sitecats, Set artcats, Set institutions, Set persons, boolean addComma) {
         String contactID = contact.getID();
         out.println("{\n" +
             "    \"_id\": \"" + contactID + "\",\n" +
@@ -197,6 +213,7 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
         exportAssociations(contactID, sitecats);
         exportAssociations(contactID, artcats);
         exportAssociations(contactID, institutions);
+        exportAssociations(contactID, persons);
         //
         out.print(addComma ? "," : "");
         out.println();
