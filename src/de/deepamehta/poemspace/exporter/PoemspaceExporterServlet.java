@@ -187,20 +187,24 @@ public class PoemspaceExporterServlet extends DeepaMehtaServlet {
     private void exportContact(BaseTopic contact, String email, String website, Set projects, Set bezirke, Set kieze,
                                                   Set sitecats, Set artcats, Set institutions, Set persons, boolean addComma) {
         String contactID = contact.getID();
+        String contactTypeID = contact.getType();
+        String topicType = contactTypeID.equals(TOPICTYPE_PERSON) ? "Person" : "Institution";
         out.println("{\n" +
             "    \"_id\": \"" + contactID + "\",\n" +
             "    \"type\": \"Topic\",\n" +
-            "    \"topic_type\": \"Contact\",\n" +
+            "    \"topic_type\": \"" + topicType + "\",\n" +
             "    \"fields\": [");
         exportField("Name", as.getTopicProperty(contact, "Name"), true);
-        exportMultiField("Notes", as.getTopicProperty(contact, "Description"), 4, true);
-        exportMultiField("Address", as.getTopicProperty(contact, "Adresse"), 4, true);
         exportMultiField("Phone", as.getTopicProperty(contact, "Telefon"), 2, true);
         exportMultiField("Email", email, 2, true);
         exportMultiField("Website", website, 2, true);
+        exportMultiField("Address", as.getTopicProperty(contact, "Adresse"), 4, true);
+        exportMultiField("Notes", as.getTopicProperty(contact, "Description"), 4, true);
         exportRelationField("Bezirk", "Bezirk", true);
         exportRelationField("Kiez", "Kiez", true);
-        exportRelationField("Einrichtungsart", "Einrichtungsart", true);
+        if (contactTypeID.equals(TOPICTYPE_INSTITUTION)) {
+            exportRelationField("Einrichtungsart", "Einrichtungsart", true);
+        }
         exportRelationField("Kunstgattung", "Kunstgattung", true);
         exportRelationField("Workspaces", "Workspace", false);
         out.print("    ],\n" +
